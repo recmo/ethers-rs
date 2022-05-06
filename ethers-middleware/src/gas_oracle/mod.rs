@@ -115,3 +115,17 @@ pub trait GasOracle: Send + Sync + std::fmt::Debug {
 
     async fn estimate_eip1559_fees(&self) -> Result<(U256, U256), GasOracleError>;
 }
+
+// TODO: I remember there was a derive macro that automates this, but I can't
+// find the crate. At any rate, I'm not sure if it is compatible with `async_trait`.
+#[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
+#[cfg_attr(not(target_arch = "wasm32"), async_trait)]
+impl GasOracle for Box<dyn GasOracle> {
+    async fn fetch(&self) -> Result<U256, GasOracleError> {
+        self.as_ref().fetch().await
+    }
+
+    async fn estimate_eip1559_fees(&self) -> Result<(U256, U256), GasOracleError> {
+        self.as_ref().estimate_eip1559_fees().await
+    }
+}
